@@ -63,6 +63,10 @@ class GremlinWindow(QWidget):
         self.idle_timer = QTimer(self)
         self.idle_timer.timeout.connect(self.idle_timer_tick)
 
+        self.walk_idle_timer = QTimer(self)
+        self.walk_idle_timer.setSingleShot(True)
+        self.walk_idle_timer.timeout.connect(self.on_walk_idle_finished)
+
         self.close_timer = None
 
         # --- @! State Management --------------------------------------------------------
@@ -79,15 +83,25 @@ class GremlinWindow(QWidget):
     # --- @! State Machine Core -------------------------------------------------------
 
     def set_state(self, new_state: State):
-        """ Handles playing entry sounds and resetting animation frames. """
+        """
+        Handles animation entries. Normally, it would play some sound effects, reset
+        frame counters, and reset timers.
+        """
         if self.current_state == new_state:
             return
+
+        # if we are leaving the WALK_IDLE state (e.g., by moving again)
+        # stop the timer so it doesn't fire.
+        if self.current_state == State.WALK_IDLE:
+            self.walk_idle_timer.stop()
 
         # handles sound effects on state transitions
         if new_state == State.DRAGGING:
             self.play_sound("grab.wav")
         elif new_state == State.WALKING and self.current_state != State.WALKING:
             self.play_sound("run.wav")
+        elif new_state == State.WALK_IDLE:
+            self.walk_idle_timer.start(2000)
         elif new_state == State.CLICK:
             self.play_sound("mambo.wav")
         elif new_state == State.PAT:
@@ -104,6 +118,8 @@ class GremlinWindow(QWidget):
                 c.Intro = 0
             case State.IDLE:
                 c.Idle = 0
+            case State.WALK_IDLE:
+                c.WalkIdle = 0
             case State.HOVER:
                 c.Hover = 0
             case State.WALKING:
@@ -116,6 +132,16 @@ class GremlinWindow(QWidget):
                 c.Pat = 0
             case State.SLEEPING:
                 c.Sleep = 0
+
+    def on_walk_idle_finished(self):
+        """ Called by the walk_idle_timer after 2 seconds. """
+        # only transition if we are still in the WALK_IDLE state
+        if self.current_state == State.WALK_IDLE:
+            # transition to HOVER if mouse is over, otherwise IDLE
+            if self.underMouse():
+                self.set_state(State.HOVER)
+            else:
+                self.set_state(State.IDLE)
 
     # --- @! Animations ------------------------------------------------------------------
 
@@ -161,6 +187,10 @@ class GremlinWindow(QWidget):
 
             case State.WALKING:
                 self.handle_walking_animation_and_movement()
+
+            case State.WALK_IDLE:
+                c.WalkIdle = self.play_animation(
+                    sprite_manager.get("widle"), c.WalkIdle, f.WalkIdle)
 
             case State.DRAGGING:
                 c.Grab = self.play_animation(
@@ -290,7 +320,7 @@ class GremlinWindow(QWidget):
 
         if s.CurrentFrames.Outro == 0:
             self.close_timer.stop()
-            QApplication.quit()
+            sys.exit(0)
 
     def closeEvent(self, event):
         event.ignore()
@@ -330,7 +360,6 @@ class GremlinWindow(QWidget):
                 # transition to Hover or Idle when dropped
                 self.set_state(State.HOVER if self.underMouse()
                                else State.IDLE)
-                self.play_sound("run.wav")
 
     def keyPressEvent(self, event):
         if event.isAutoRepeat():
@@ -354,8 +383,8 @@ class GremlinWindow(QWidget):
 
         # if we were walking and are no longer moving...
         if self.current_state == State.WALKING and not self.movement_handler.is_moving():
-            # ...transition to hover or idle.
-            self.set_state(State.HOVER if self.underMouse() else State.IDLE)
+            # ...transition to WALK_IDLE
+            self.set_state(State.WALK_IDLE)
 
     def enterEvent(self, event):
         self.setFocus()
@@ -370,9 +399,13 @@ class GremlinWindow(QWidget):
         self.clearFocus()
         self.movement_handler.recordMouseLeave()    # stop all movement
 
-        # if we were hovering or walking, transition to idle.
-        if self.current_state in [State.HOVER, State.WALKING]:
+        if self.current_state == State.WALKING:
+            # if mouse leaves while walking, stop walking and go to WALK_IDLE
+            self.set_state(State.WALK_IDLE)
+        elif self.current_state == State.HOVER:
+            # if mouse leaves while hovering, go to IDLE
             self.set_state(State.IDLE)
+        # if in WALK_IDLE, do nothing. The timer will handle the transition.
 
     # --- @! Hotspot Click Handlers ------------------------------------------------------
 

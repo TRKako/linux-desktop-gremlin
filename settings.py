@@ -12,6 +12,7 @@ class State(Enum):
     IDLE = auto()
     HOVER = auto()
     WALKING = auto()
+    WALK_IDLE = auto()
     DRAGGING = auto()
     CLICK = auto()
     PAT = auto()
