@@ -17,5 +17,6 @@
     "DownLeft": "backward.png",
     "DownRight": "backward.png",
     "WalkIdle": "walk-idle.png",
-    "Pat": "walk-idle.png"
+    "Pat": "walk-idle.png",
+    "Emote": "emote.png"
 }

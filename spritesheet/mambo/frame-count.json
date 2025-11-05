@@ -15,5 +15,6 @@
     "DownLeft": 18,
     "DownRight": 18,
     "WalkIdle": 55,
-    "Pat": 55
+    "Pat": 55,
+    "Emote": 54
 }

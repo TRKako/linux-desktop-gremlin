@@ -54,3 +54,15 @@ def load_frame_count() -> bool:
         print(f"Warning: Character config file not found at {path}")
         return False
     return load(path, settings.FrameCounts)
+
+
+def load_emote_config() -> bool:
+    """ Loads the emote config. """
+    path = os.path.join(
+        settings.BASE_DIR,
+        "spritesheet", settings.Settings.StartingChar.lower(), "emote-config.json"
+    )
+    if not os.path.exists(path):
+        print(f"Warning: Emote config file not found at {path}")
+        return False
+    return load(path, settings.EmoteConfig)

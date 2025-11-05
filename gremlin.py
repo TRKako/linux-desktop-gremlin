@@ -2,6 +2,7 @@
 import sys
 import os
 import datetime
+import random
 from PySide6.QtWidgets import (
     QWidget, QLabel, QSystemTrayIcon, QMenu, QApplication
 )
@@ -60,6 +61,13 @@ class GremlinWindow(QWidget):
         self.walk_idle_timer.setSingleShot(True)
         self.walk_idle_timer.timeout.connect(self.on_walk_idle_finished)
 
+        self.emote_timer = QTimer(self)
+        self.emote_timer.timeout.connect(self.emote_timer_tick)
+
+        self.emote_duration_timer = QTimer(self)
+        self.emote_duration_timer.setSingleShot(True)
+        self.emote_duration_timer.timeout.connect(self.on_emote_finished)
+
         self.close_timer = None
 
         # --- @! State Management --------------------------------------------------------
@@ -67,39 +75,63 @@ class GremlinWindow(QWidget):
         self.current_state = State.INTRO
         self.drag_pos = None
 
+        if settings.EmoteConfig.AnnoyEmote:
+            # start the emote timer if the user want to be occasionally annoyed :)
+            self.reset_emote_timer()
+
         # --- @! Start -------------------------------------------------------------------
         self.setup_tray_icon()
         self.play_sound("intro.wav")
         self.master_timer.start(1000 // settings.SpriteMap.FrameRate)
         self.idle_timer.start(120 * 1000)
 
-    # --- @! State Machine Core -------------------------------------------------------
+    # --- @! State Machine Core ----------------------------------------------------------
 
     def set_state(self, new_state: State):
         """
         Handles animation entries. Normally, it would play some sound effects, reset
         frame counters, and reset timers.
+
+        !TODO: So far there are only two animations that ends on timeout, not on frame
+        completion. These are the WALK_IDLE (2 seconds) and EMOTE (configurable). When
+        KurtVelasco created the original Desktop Gremlin, he did not design it to have
+        such animations; thus, when I added them, their state management seems out of
+        place compared to the other states. Soon, I will refactor the state machine to
+        have a more uniform way of handling such states.
         """
+
+        # only triggers on state change, does nothing otherwise
         if self.current_state == new_state:
             return
 
-        # if we are leaving the WALK_IDLE state (e.g., by moving again)
-        # stop the timer so it doesn't fire.
+        # --- @! handle timers on state exit ---------------------------------------------
+        # if we are leaving the WALK_IDLE state, stop the timer so it doesn't fire.
         if self.current_state == State.WALK_IDLE:
             self.walk_idle_timer.stop()
 
-        # handles sound effects on state transitions
-        if new_state == State.DRAGGING:
-            self.play_sound("grab.wav")
-        elif new_state == State.WALKING and self.current_state != State.WALKING:
-            self.play_sound("run.wav")
-        elif new_state == State.WALK_IDLE:
-            self.walk_idle_timer.start(2000)
-        elif new_state == State.CLICK:
-            self.play_sound("mambo.wav")
-        elif new_state == State.PAT:
-            self.play_sound("pat.wav")
+        # if we are leaving the EMOTE state, stop the duration timer
+        if self.current_state == State.EMOTE:
+            self.emote_duration_timer.stop()
 
+        # --- @! handle SFX on state entry -----------------------------------------------
+        match new_state:
+            case State.DRAGGING:
+                self.play_sound("grab.wav")
+            case State.WALKING:
+                if self.current_state != State.WALKING:
+                    self.play_sound("run.wav")
+            case State.WALK_IDLE:
+                self.walk_idle_timer.start(2000)
+            case State.CLICK:
+                self.play_sound("mambo.wav")
+            case State.PAT:
+                self.play_sound("pat.wav")
+            case State.EMOTE:
+                self.play_sound("emote.wav")
+                emote_duration = settings.EmoteConfig.EmoteDuration
+                self.emote_duration_timer.start(emote_duration)
+
+        # --- @! finalize state change ---------------------------------------------------
         self.current_state = new_state
         self.reset_current_frames(new_state)
 
@@ -123,6 +155,8 @@ class GremlinWindow(QWidget):
                 c.Click = 0
             case State.PAT:
                 c.Pat = 0
+            case State.EMOTE:
+                c.Emote = 0
             case State.SLEEPING:
                 c.Sleep = 0
 
@@ -210,6 +244,10 @@ class GremlinWindow(QWidget):
             case State.SLEEPING:
                 c.Sleep = self.play_animation(
                     sprite_manager.get(m.Sleep), c.Sleep, f.Sleep)
+
+            case State.EMOTE:
+                c.Emote = self.play_animation(
+                    sprite_manager.get(m.Emote), c.Emote, f.Emote)
 
             case State.OUTRO:
                 # this state is handled by outro_tick, but we stop master_timer
@@ -299,6 +337,23 @@ class GremlinWindow(QWidget):
         self.close_timer.timeout.connect(self.outro_tick)
         self.close_timer.start(1000 // settings.SpriteMap.FrameRate)
 
+    def closeEvent(self, event):
+        event.ignore()
+        self.close_app()
+
+    # --- @! Timers Controls -------------------------------------------------------------
+
+    def reset_idle_timer(self):
+        """ Resets the idle timer and wakes the gremlin up if sleeping. """
+        self.idle_timer.start(300 * 1000)
+        if self.current_state == State.SLEEPING:
+            self.set_state(State.IDLE)
+
+    def idle_timer_tick(self):
+        """ When timer fires, go to sleep. """
+        if self.current_state == State.IDLE:
+            self.set_state(State.SLEEPING)
+
     def outro_tick(self):
         s = settings
         s.CurrentFrames.Outro = self.play_animation(
@@ -311,25 +366,56 @@ class GremlinWindow(QWidget):
             self.close_timer.stop()
             sys.exit(0)
 
-    def closeEvent(self, event):
-        event.ignore()
-        self.close_app()
+    def reset_emote_timer(self):
+        """
+        Sets the emote timer to a new random interval.
+        You will have your silence occasionally broken up by Mambo :)
+        """
+        try:
+            min_ms = settings.EmoteConfig.MinEmoteTriggerMinutes * 60000
+            max_ms = settings.EmoteConfig.MaxEmoteTriggerMinutes * 60000
+
+            if min_ms <= 0 or max_ms <= 0 or max_ms < min_ms:
+                print("Warning: Invalid emote timer settings. Disabling emote timer.")
+                self.emote_timer.stop()
+                return
+
+            interval = random.randint(min_ms, max_ms)
+            self.emote_timer.start(interval)
+        except Exception as e:
+            print(f"Warning: Could not set emote timer. Error: {e}")
+            self.emote_timer.stop()
+
+    def emote_timer_tick(self):
+        """ Fires when the emote timer is up. """
+        # only trigger if no active interaction is happening
+        if self.current_state in [State.IDLE, State.HOVER, State.SLEEPING]:
+            self.set_state(State.EMOTE)
+
+        # reset the timer for the next emote
+        self.reset_emote_timer()
+
+    def on_emote_finished(self):
+        """ Fired by emote_duration_timer. Transitions back to idle/hover. """
+        if self.current_state == State.EMOTE:
+            if self.underMouse():
+                self.set_state(State.HOVER)
+            else:
+                self.set_state(State.IDLE)
 
     # --- @! Event Handlers (Mouse) ------------------------------------------------------
 
-    def reset_idle_timer(self):
-        """ Resets the idle timer and wakes the gremlin up if sleeping. """
-        self.idle_timer.start(120 * 1000)
-        if self.current_state == State.SLEEPING:
-            self.set_state(State.IDLE)
-
-    def idle_timer_tick(self):
-        """ When timer fires, go to sleep. """
-        if self.current_state in [State.IDLE, State.HOVER]:
-            self.set_state(State.SLEEPING)
-
     def mousePressEvent(self, event):
+        # Temporarily disable mouse press when emoting...
+        if self.current_state == State.EMOTE:
+            return
+
+        # ...otherwise, reset the idle timer. Since a click event is an interaction of
+        # utmost care and love, we emote timer is also reset.
         self.reset_idle_timer()
+        self.reset_emote_timer()
+
+        # switch states based on mouse button
         if event.button() == Qt.MouseButton.LeftButton:
             if self.current_state not in [State.DRAGGING, State.PAT, State.CLICK]:
                 self.set_state(State.DRAGGING)
@@ -355,7 +441,7 @@ class GremlinWindow(QWidget):
             return
 
         # don't allow walking while in these blocking states
-        if self.current_state in [State.DRAGGING, State.PAT, State.CLICK, State.SLEEPING]:
+        if self.current_state in [State.DRAGGING, State.PAT, State.CLICK, State.SLEEPING, State.EMOTE]:
             return
 
         self.movement_handler.recordKeyPress(event)
@@ -381,7 +467,7 @@ class GremlinWindow(QWidget):
         if self.current_state == State.IDLE:
             self.set_state(State.HOVER)
 
-        if self.current_state not in [State.WALKING, State.SLEEPING, State.CLICK, State.DRAGGING]:
+        if self.current_state not in [State.WALKING, State.SLEEPING, State.CLICK, State.DRAGGING, State.EMOTE]:
             self.play_sound("hover.wav", 3)
 
     def leaveEvent(self, event):
@@ -400,7 +486,7 @@ class GremlinWindow(QWidget):
 
     def top_hotspot_click(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            if self.current_state not in [State.DRAGGING, State.CLICK, State.SLEEPING]:
+            if self.current_state not in [State.DRAGGING, State.CLICK, State.SLEEPING, State.EMOTE]:
                 self.reset_idle_timer()
                 self.set_state(State.PAT)
 

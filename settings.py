@@ -18,6 +18,7 @@ class State(Enum):
     PAT = auto()
     SLEEPING = auto()
     OUTRO = auto()
+    EMOTE = auto()
 
 
 class Settings:
@@ -38,6 +39,13 @@ class MouseSettings:
     MouseX = 0.0
     MouseY = 0.0
     Speed = 10.0
+
+
+class EmoteConfig:
+    AnnoyEmote = True
+    MinEmoteTriggerMinutes = 5
+    MaxEmoteTriggerMinutes = 15
+    EmoteDuration = 3600
 
 
 """
@@ -66,6 +74,7 @@ class SpriteMap:
     DownRight = None
     WalkIdle = None
     Pat = None
+    Emote = None
 
 
 class FrameCounts:
@@ -86,6 +95,7 @@ class FrameCounts:
     DownRight = None
     WalkIdle = None
     Pat = None
+    Emote = None
 
 
 class CurrentFrames:
@@ -106,3 +116,4 @@ class CurrentFrames:
     DownRight = 0
     WalkIdle = 0
     Pat = 0
+    Emote = 0

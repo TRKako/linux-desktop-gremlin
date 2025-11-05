@@ -14,14 +14,17 @@ https://github.com/user-attachments/assets/eeb75510-9725-4f3a-a259-0959ddc22603
     - **Secret Move:** 💃 Right-click to see what happens. (It's Mambo time 😎😎)
     - **Headpats:** 🖐️ You can pat their head by clicking the top hotspot. (Still looking for a Mambo patting animation, send help.)
 - Also, the gremlins will make some ✨noises✨ when you interact with them 🥰🥰 Show 'em some love!
+- **🚨🚨SECRETS!!🚨🚨** If you leave the gremlins lonely for so long, they will occasionally make more ✨noises✨ to annoy you 😈😈. Think of it as *"1 hour of silence occasionally broken up by Mambo"*.
 
-> Note: It seems that the "Cursor-following does not work in Wayland" statement of mine was, in fact, a skill issue 😩😩. I'll implement it as soon as I can.
+> Note 1: The *"1 hour of silence occasionally broken up by Mambo"* feature can be turned off (if you are a chicken 🐔🐔). See the "Customize your Gremlins!" section below.
+>
+> Note 2: It seems that the "Cursor-following does not work in Wayland" statement of mine was, in fact, a skill issue 😩😩. I'll implement it as soon as I can.
 
 # Some differences between this and KurtVelasco's Desktop Gremlins
 
-Aside from the differences that originate from platform problems, I also made some changes to the animation flow so as to fit my preferences. I don't think it's noticable, I just want to clearly announce that these discrepancies are not bugs, but intended features.
+This is not a strict 1:1 port, because I made some changes to the animation flow to better match my own preferences. I also created a few additional spritesheets; please feel free to use them if they're helpful.
 
-Also, for anyone who wants to dive in and tinker: I took KurtVelasco's original state management code and refactored it from a pile of if-else into a clean, classic Finite State Machine. If you want to add your own animations or change the logic, just check out the `animation_tick` method in `gremlin.py`. It's deadass simple. Go wild.
+Furthermore, for anyone who wants to add or change the animation logic: Check out the `animation_tick` method in `gremlin.py`. Unlike KurtVelasco's original code, this version uses a more traditional Finite State Machine design, so it should make the logic easier to follow and extend. There's still plenty of room for improvement, though. I'll come back to polishing the code after I finish adding the animations I have in mind.
 
 # How to Install and Run
 
@@ -109,6 +112,27 @@ Execute the script that matches your setup, then a gremlin shall be spawned:
 # The gremlin won't be despawned unless you use your hotkeys for closing window,
 # like alt+f4 or mod+q.
 ```
+
+# 🔧 Customize your Gremlins!
+
+For now, the only customization that you can do without touching the source code is: **Do you want the gremlins to annoy you at random time or not** 😜
+
+To control this, open `./spritesheet/<character>/emote-config.json`. You'll see this:
+
+```json
+{
+    "AnnoyEmote": true,
+    "MinEmoteTriggerMinutes": 5,
+    "MaxEmoteTriggerMinutes": 15,
+    "EmoteDuration": 3600
+}
+```
+
+If you set `AnnoyEmote` to `false`, then nothing happens. If you set it to `true`, however:
+- If the gremlin goes without any *"caring interactions"* (no pats, no drags, no clicks,...) they will get bored 😢.
+- If you leave them bored for a while (a random time between `MinEmoteTriggerMinutes` and `MaxEmoteTriggerMinutes`), they will suddenly play a special emote (with sound!) all by themselves 😙😙.
+- The emote will last for the number of milliseconds set in `EmoteDuration`.
+  - *(Note: For now, this duration only affects the animation, not the sound effect, sorry 😢.)*
 
 # Stay Tuned! 🚀
 

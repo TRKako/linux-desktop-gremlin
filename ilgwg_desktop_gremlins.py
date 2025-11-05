@@ -12,7 +12,8 @@ if __name__ == "__main__":
     try:
         state = (config_manager.load_master_config() and
                  config_manager.load_sprite_map() and
-                 config_manager.load_frame_count())
+                 config_manager.load_frame_count() and
+                 config_manager.load_emote_config())
         if not state:
             print("Fatal Error: Corrupted configuration. Quitting...")
             sys.exit(1)
