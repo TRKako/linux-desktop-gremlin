@@ -58,6 +58,8 @@ class SpriteMap:
     SpriteColumn = 5
     FrameHeight = None
     FrameWidth = None
+    TopHotspotHeight = None
+    TopHotspotWidth = None
     Idle = None
     Hover = None
     Click = None

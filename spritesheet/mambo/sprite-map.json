@@ -3,6 +3,8 @@
     "SpriteColumn": 5,
     "FrameHeight": 300,
     "FrameWidth": 300,
+    "TopHotspotHeight": 100,
+    "TopHotspotWidth": 150,
     "Idle": "idle.png",
     "Hover": "hover.png",
     "Click": "click.png",
