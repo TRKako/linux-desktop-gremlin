@@ -26,42 +26,11 @@ This is not a strict 1:1 port, because I made some changes to the animation flow
 
 Furthermore, for anyone who wants to add or change the animation logic: Check out the `animation_tick` method in `gremlin.py`. Unlike KurtVelasco's original code, this version uses a more traditional Finite State Machine design, so it should make the logic easier to follow and extend. There's still plenty of room for improvement, though. I'll come back to polishing the code after I finish adding the animations I have in mind.
 
-# ⚙ How to Install and Run
+# ⚙ How to Install and Run (Automatically)
 
-## 1. Install Dependencies
+## 1. Configure your Compositor
 
-You can install dependencies either in a Python virtual environment or using your system's package manager.
-
-<details>
-  <summary>Method A: Virtual Environment (Recommended)</summary>
-
-  There's nothing that can go wrong about this, except for the disk space.
-
-  ```sh
-  # clone repository
-  git clone https://github.com/iluvgirlswithglasses/linux-desktop-gremlin
-  cd linux-desktop-gremlin
-
-  # install uv -- a fast Python package manager -- then sync packages
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  uv sync
-  ```
-</details>
-
-<details>
-  <summary>Method B: System Package Manager</summary>
-
-  This method uses your distribution's packages to save disk space. You will need PySide6 and its Qt6 dependencies.
-
-  ```sh
-  # Example for Arch / EndeavourOS
-  yay -S pyside6 qt6-base
-  ```
-</details>
-
-## 2. Configure your Compositor
-
-To make the gremlin's background transparent, your compositor must be configured correctly. Here are the guides for X11 desktops and Hyprland:
+To make the gremlin's background transparent, your compositor must be configured correctly. Unfortunately, this is not something that can really be automated. So, before you install, please follow these guides for X11 desktops and Hyprland:
 
 <details>
   <summary>For X11 (e.g., i3, bspwm, etc.)</summary>
@@ -98,9 +67,23 @@ To make the gremlin's background transparent, your compositor must be configured
   ```
 </details>
 
-## 3. Run Linux Desktop Gremlins
+## 2. Run the installation script
 
-Execute the script that matches your setup, then a gremlin shall be spawned:
+Just run the following script, and it will take care of the rest for you:
+
+```sh
+curl -s https://raw.githubusercontent.com/iluvgirlswithglasses/linux-desktop-gremlin/refs/heads/main/install.sh | bash
+```
+
+It is recommended that you check the content of the script before running.
+
+## 3. Run Desktop Gremins!
+
+If you have [rofi](https://github.com/davatorium/rofi) installed, you can use it to find and run Desktop Gremlin.
+
+<img width="960" height="720" alt="tmp_3" src="https://github.com/user-attachments/assets/45b2cffa-2914-4e25-b8d2-de07432c008e" />
+
+Otherwise, you can navigate to `~/.config/linux-desktop-gremlin/` and execute the run script that matches your setup, then a gremlin shall be spawned:
 
 ```sh
 ./run-x11.sh            # for running on X11
@@ -112,6 +95,57 @@ Execute the script that matches your setup, then a gremlin shall be spawned:
 # The gremlin won't be despawned unless you use your hotkeys for closing window,
 # like alt+f4 or mod+q.
 ```
+
+# ⚙ How to Install and Run (Manually)
+
+## 1. Install Dependencies
+
+You can install dependencies either in a Python virtual environment or using your system's package manager.
+
+<details>
+  <summary>Method A: Virtual Environment (Recommended)</summary>
+
+  There's nothing that can go wrong about this, except for the disk space.
+
+  ```sh
+  # clone repository
+  git clone https://github.com/iluvgirlswithglasses/linux-desktop-gremlin
+  cd linux-desktop-gremlin
+
+  # install uv -- a fast Python package manager -- then sync packages
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  uv sync
+  ```
+</details>
+
+<details>
+  <summary>Method B: System Package Manager</summary>
+
+  This method uses your distribution's packages to save disk space. You will need PySide6 and its Qt6 dependencies.
+
+  ```sh
+  # Example for Arch / EndeavourOS
+  yay -S pyside6 qt6-base
+  ```
+</details>
+
+## 2. Run Linux Desktop Gremlins
+
+Execute the script that matches your setup, then a gremlin shall be spawned:
+
+```sh
+./run-x11.sh            # for running on X11
+./run-xwayland.sh       # for running on Hyprland
+./run-uv-x11.sh         # for running with virtual environment on X11
+./run-uv-xwayland.sh    # for running with virtual environment on Hyprland
+./gremlin-picker.sh     # if you want to use a GUI picker (you need rofi installed)
+
+# You can now close the terminal which you executed these scripts with.
+# The gremlin won't be despawned unless you use your hotkeys for closing window,
+# like alt+f4 or mod+q.
+```
+
+You would also need to configure your compositor correctly so that the gremlins have fully transparent background. Refer to section "How to Install and Run (Automatically)" > "1. Configure your Compositor".
 
 # 🔧 Customizations!
 
